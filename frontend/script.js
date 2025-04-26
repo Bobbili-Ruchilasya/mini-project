@@ -1,0 +1,163 @@
+function convertMarkdownToHTML(markdown) {
+  return markdown
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.*?)\*/g, "<em>$1</em>");
+}
+
+function typeText(element, text, speed = 30) {
+  element.innerHTML = '';
+  let index = 0;
+  function type() {
+    if (index < text.length) {
+      element.innerHTML += text.charAt(index);
+      index++;
+      setTimeout(type, speed);
+    }
+  }
+  type();
+}
+
+async function uploadPDF() {
+  const fileInput = document.getElementById('pdfInput');
+  const statusDiv = document.getElementById('status');
+  const summaryText = document.getElementById('summaryText');
+  const snippetText = document.getElementById('snippetText');
+  const mindMapText = document.getElementById('mindMapText');
+  const mcqText = document.getElementById('mcqText');
+  const studyPlanText = document.getElementById('studyPlanText');
+
+  if (fileInput.files.length === 0) {
+    alert("Please select a PDF file.");
+    return;
+  }
+
+  const file = fileInput.files[0];
+  const formData = new FormData();
+  formData.append("file", file);
+
+  statusDiv.innerHTML = "<p class='loading'>⏳ Uploading and processing...</p>";
+  typeText(summaryText, "Typing summary...");
+  typeText(snippetText, "Typing snippet...");
+  typeText(mindMapText, "Generating mind map...");
+  typeText(mcqText, "Generating MCQs...");
+  typeText(studyPlanText, "Preparing study plan...");
+
+  try {
+    const [summaryRes, mindMapRes, mcqRes, studyPlanRes] = await Promise.all([
+      fetch("http://127.0.0.1:8000/upload-pdf/", { method: "POST", body: formData }),
+      fetch("http://127.0.0.1:8000/generate-mindmap/", { method: "POST", body: formData }),
+      fetch("http://127.0.0.1:8000/generate-mcqs/", { method: "POST", body: formData }),
+      fetch("http://127.0.0.1:8000/generate-study-plan/", { method: "POST", body: formData })
+    ]);
+
+    if (!summaryRes.ok || !mindMapRes.ok || !mcqRes.ok || !studyPlanRes.ok) {
+      throw new Error("One of the API calls failed.");
+    }
+
+    const summaryResult = await summaryRes.json();
+    const mindMapResult = await mindMapRes.json();
+    const mcqResult = await mcqRes.json();
+    const studyPlanResult = await studyPlanRes.json();
+
+    // ✅ Render Summary
+    const summaryList = summaryResult.summary
+      .split("* ")
+      .filter(line => line.trim() !== "")
+      .map(line => {
+        const cleanLine = line.replace(/^\*+/, "").trim();
+        return `<li>${convertMarkdownToHTML(cleanLine)}</li>`;
+      }).join("");
+
+    const snippetList = summaryResult.text_snippet
+      .split(/\. +/)
+      .filter(sentence => sentence.trim() !== "")
+      .map(sentence => `<li>${sentence.trim()}.</li>`)
+      .join("");
+
+    summaryText.innerHTML = `<ul>${summaryList}</ul>`;
+    snippetText.innerHTML = `<ul>${snippetList}</ul>`;
+    mindMapText.innerHTML = `<pre>${mindMapResult.mind_map}</pre>`;
+
+    // ✅ Render MCQs
+    const mcqs = mcqResult.mcqs;
+    mcqText.innerHTML = "";
+
+    mcqs.forEach((mcq, i) => {
+      if (mcq.error) {
+        mcqText.innerHTML = `<p style="color:red;">${mcq.error}</p>`;
+        return;
+      }
+
+      const questionDiv = document.createElement("div");
+      questionDiv.className = "mcq-block";
+      questionDiv.innerHTML = `<p><strong>Q${i + 1}:</strong> ${mcq.question}</p>`;
+
+      for (const [key, value] of Object.entries(mcq.options)) {
+        const button = document.createElement("button");
+        button.innerText = `${key}. ${value}`;
+        button.onclick = () => {
+          const allButtons = questionDiv.querySelectorAll("button");
+          allButtons.forEach(btn => btn.disabled = true);
+
+          if (key === mcq.answer) {
+            button.classList.add("correct");
+          } else {
+            button.classList.add("incorrect");
+            // highlight correct one too
+            allButtons.forEach(btn => {
+              if (btn.innerText.startsWith(mcq.answer + ".")) {
+                btn.classList.add("correct");
+              }
+            });
+          }
+
+          const explanationDiv = document.createElement("div");
+          explanationDiv.innerHTML = `<em>${mcq.explanation}</em>`;
+          explanationDiv.style.marginTop = "10px";
+          questionDiv.appendChild(explanationDiv);
+        };
+        questionDiv.appendChild(button);
+        questionDiv.appendChild(document.createElement("br"));
+      }
+
+      mcqText.appendChild(questionDiv);
+    });
+
+    // ✅ Render Study Plan
+    studyPlanText.innerText = studyPlanResult.study_plan.replace(/\*+/g, '').trim();
+
+    statusDiv.innerHTML = "<p style='color: green;'>✅ All done!</p>";
+  } catch (error) {
+    console.error("Upload failed:", error);
+    statusDiv.innerHTML = "<p style='color: red;'>❌ Failed to process PDF.</p>";
+  }
+}
+
+function copyText(elementId) {
+  const element = document.getElementById(elementId);
+  if (!element) {
+    alert("Element not found!");
+    return;
+  }
+  const temp = document.createElement("textarea");
+  temp.value = element.innerText;
+  document.body.appendChild(temp);
+  temp.select();
+  document.execCommand("copy");
+  document.body.removeChild(temp);
+  alert("Copied to clipboard!");
+}
+
+function downloadText(elementId, filename) {
+  const element = document.getElementById(elementId);
+  if (!element) {
+    alert("Element not found!");
+    return;
+  }
+  const text = element.innerText;
+  const blob = new Blob([text], { type: "text/plain" });
+  const link = document.createElement("a");
+  link.download = filename;
+  link.href = window.URL.createObjectURL(blob);
+  link.click();
+}
