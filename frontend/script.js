@@ -17,6 +17,86 @@ function typeText(element, text, speed = 30) {
   type();
 }
 
+function showSection(sectionId) {
+  document.querySelectorAll('.section').forEach(section => {
+    section.classList.remove('active');
+  });
+  document.querySelectorAll('.tag').forEach(tag => {
+    tag.classList.remove('active');
+  });
+  document.getElementById(sectionId).classList.add('active');
+  document.querySelector(`button[onclick="showSection('${sectionId}')"]`).classList.add('active');
+}
+
+function parseMindMapToVisData(mindMapText) {
+  const nodes = [];
+  const edges = [];
+  const lines = mindMapText.split('\n');
+  let nodeId = 1;
+  const nodeMap = {};
+
+  lines.forEach(line => {
+    const indentLevel = (line.match(/^\s*-/) ? line.match(/^\s*/)[0].length / 2 : 0);
+    const content = line.replace(/^\s*-+\s*/, '').trim();
+    if (!content) return;
+
+    const node = { id: nodeId, label: content, level: indentLevel };
+    nodes.push(node);
+    nodeMap[indentLevel] = nodeId;
+
+    if (indentLevel > 0) {
+      const parentLevel = indentLevel - 1;
+      if (nodeMap[parentLevel]) {
+        edges.push({ from: nodeMap[parentLevel], to: nodeId });
+      }
+    }
+
+    nodeId++;
+  });
+
+  return { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+}
+
+function renderMindMap(mindMapText) {
+  const container = document.getElementById('mindMapContainer');
+  const data = parseMindMapToVisData(mindMapText);
+  const options = {
+    layout: {
+      hierarchical: {
+        direction: 'UD', // Up-Down direction
+        sortMethod: 'directed',
+        levelSeparation: 150, // Increase vertical spacing between levels
+        nodeSpacing: 200, // Increase horizontal spacing between nodes
+        treeSpacing: 300 // Increase spacing between different branches
+      }
+    },
+    nodes: {
+      shape: 'box',
+      color: { background: '#1d1d1d', border: '#fff' },
+      font: { color: '#fff', size: 14 },
+      widthConstraint: { maximum: 200 } // Prevent nodes from being too wide
+    },
+    edges: {
+      color: '#fff',
+      smooth: { type: 'curvedCW', roundness: 0.2 }
+    },
+    physics: {
+      enabled: false // Disable physics to maintain hierarchical layout
+    },
+    interaction: {
+      dragNodes: true,
+      zoomView: true,
+      dragView: true
+    }
+  };
+  const network = new vis.Network(container, data, options);
+
+  // Fit the network to the container after rendering
+  setTimeout(() => {
+    network.fit();
+  }, 500);
+}
+
 async function uploadPDF() {
   const fileInput = document.getElementById('pdfInput');
   const statusDiv = document.getElementById('status');
@@ -59,7 +139,7 @@ async function uploadPDF() {
     const mcqResult = await mcqRes.json();
     const studyPlanResult = await studyPlanRes.json();
 
-    // ✅ Render Summary
+    // Render Summary
     const summaryList = summaryResult.summary
       .split("* ")
       .filter(line => line.trim() !== "")
@@ -67,21 +147,23 @@ async function uploadPDF() {
         const cleanLine = line.replace(/^\*+/, "").trim();
         return `<li>${convertMarkdownToHTML(cleanLine)}</li>`;
       }).join("");
+    summaryText.innerHTML = `<ul>${summaryList}</ul>`;
 
+    // Render Snippet
     const snippetList = summaryResult.text_snippet
       .split(/\. +/)
       .filter(sentence => sentence.trim() !== "")
       .map(sentence => `<li>${sentence.trim()}.</li>`)
       .join("");
-
-    summaryText.innerHTML = `<ul>${summaryList}</ul>`;
     snippetText.innerHTML = `<ul>${snippetList}</ul>`;
-    mindMapText.innerHTML = `<pre>${mindMapResult.mind_map}</pre>`;
 
-    // ✅ Render MCQs
+    // Render Mind Map
+    mindMapText.innerText = mindMapResult.mind_map;
+    renderMindMap(mindMapResult.mind_map);
+
+    // Render MCQs
     const mcqs = mcqResult.mcqs;
     mcqText.innerHTML = "";
-
     mcqs.forEach((mcq, i) => {
       if (mcq.error) {
         mcqText.innerHTML = `<p style="color:red;">${mcq.error}</p>`;
@@ -103,7 +185,6 @@ async function uploadPDF() {
             button.classList.add("correct");
           } else {
             button.classList.add("incorrect");
-            // highlight correct one too
             allButtons.forEach(btn => {
               if (btn.innerText.startsWith(mcq.answer + ".")) {
                 btn.classList.add("correct");
@@ -123,10 +204,11 @@ async function uploadPDF() {
       mcqText.appendChild(questionDiv);
     });
 
-    // ✅ Render Study Plan
+    // Render Study Plan
     studyPlanText.innerText = studyPlanResult.study_plan.replace(/\*+/g, '').trim();
 
     statusDiv.innerHTML = "<p style='color: green;'>✅ All done!</p>";
+    showSection('summary'); // Default to summary
   } catch (error) {
     console.error("Upload failed:", error);
     statusDiv.innerHTML = "<p style='color: red;'>❌ Failed to process PDF.</p>";

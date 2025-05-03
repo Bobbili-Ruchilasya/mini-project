@@ -6,7 +6,7 @@ body {
   font-family: 'Segoe UI', Tahoma, sans-serif;
   margin: 0;
   padding: 30px;
-  background: linear-gradient(135deg, #948e99, #2e1437);
+  background: linear-gradient(135deg, #000, #fff);
   color: #f1f1f1;
   animation: fadeIn 1s ease-in-out;
 }
@@ -15,11 +15,10 @@ body {
   max-width: 900px;
   margin: auto;
   padding: 30px;
-  background: linear-gradient(135deg, #1d4350, #a43931);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
 h2 {
@@ -30,8 +29,14 @@ h2 {
   text-shadow: 1px 1px 3px #000;
 }
 
+.file-upload {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
 input[type="file"], button {
-  margin-top: 10px;
   padding: 12px 18px;
   border-radius: 10px;
   font-size: 16px;
@@ -51,6 +56,36 @@ button {
 button:hover {
   transform: translateY(-1px) scale(1.02);
   background: linear-gradient(135deg, #0072ff, #00c6ff);
+}
+
+.tag-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: #444;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.tag:hover, .tag.active {
+  background: linear-gradient(135deg, #00c6ff, #0072ff);
+}
+
+.section {
+  display: none;
+}
+
+.section.active {
+  display: block;
 }
 
 .small-btn {
@@ -103,7 +138,7 @@ pre {
 }
 
 .glass-card {
-  margin-top: 30px;
+  margin-top: 20px;
   background-color: rgba(255, 255, 255, 0.05);
   padding: 25px;
   border-radius: 14px;
@@ -150,20 +185,8 @@ pre {
   h2 {
     font-size: 26px;
   }
-}
-.ask-edu-btn {
-  background: linear-gradient(to right, #8e2de2, #4a00e0);
-  color: white;
-  padding: 10px 16px;
-  border: none;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
 
-.ask-edu-btn:hover {
-  background: linear-gradient(to right, #4a00e0, #8e2de2);
+  .tag-container {
+    justify-content: center;
+  }
 }
-

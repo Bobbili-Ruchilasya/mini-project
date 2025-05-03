@@ -5,18 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>EduMorph</title>
   <link rel="stylesheet" href="styles.css">
-  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis-network.min.css" rel="stylesheet" type="text/css" />
 </head>
-
 <body>
   <div class="container">
     <h2>EduMorph</h2>
 
-    <input type="file" id="pdfInput" accept=".pdf" />
-    <button onclick="uploadPDF()">Upload</button>
+    <div class="file-upload">
+      <input type="file" id="pdfInput" accept=".pdf" />
+      <button onclick="uploadPDF()">Upload</button>
+    </div>
     <div id="status"></div>
 
-    <div id="summary" class="fade-in glass-card">
+    <div class="tag-container">
+      <button class="tag active" onclick="showSection('summary')">Summary</button>
+      <button class="tag" onclick="showSection('snippet')">Snippet</button>
+      <button class="tag" onclick="showSection('mindmap')">Mind Map</button>
+      <button class="tag" onclick="showSection('mcqs')">MCQs</button>
+      <button class="tag" onclick="showSection('studyPlan')">Study Plan</button>
+    </div>
+
+    <div id="summary" class="section glass-card active">
       <h3>📝 Summary
         <button class="small-btn" onclick="copyText('summaryText')">📋</button>
         <button class="small-btn" onclick="downloadText('summaryText', 'summary.txt')">⬇️</button>
@@ -24,7 +34,7 @@
       <div id="summaryText">No summary yet.</div>
     </div>
 
-    <div id="snippet" class="fade-in glass-card">
+    <div id="snippet" class="section glass-card">
       <h3>📚 Text Snippet
         <button class="small-btn" onclick="copyText('snippetText')">📋</button>
         <button class="small-btn" onclick="downloadText('snippetText', 'snippet.txt')">⬇️</button>
@@ -32,32 +42,24 @@
       <div id="snippetText">No snippet yet.</div>
     </div>
 
-    <div id="mindmap" class="fade-in glass-card">
+    <div id="mindmap" class="section glass-card">
       <h3>🧠 Mind Map
         <button class="small-btn" onclick="copyText('mindMapText')">📋</button>
         <button class="small-btn" onclick="downloadText('mindMapText', 'mindmap.txt')">⬇️</button>
       </h3>
-      <div id="mindMapText">No mind map generated.</div>
+      <div id="mindMapContainer" style="height: 600px; width: 100%;"></div>
+      <pre id="mindMapText" style="display: none;">No mind map generated.</pre>
     </div>
 
-    <div id="mcqs" class="fade-in glass-card">
+    <div id="mcqs" class="section glass-card">
       <h3>❓ MCQs
         <button class="small-btn" onclick="copyText('mcqText')">📋</button>
         <button class="small-btn" onclick="downloadText('mcqText', 'mcqs.txt')">⬇️</button>
       </h3>
-      <div id="mcqText" class="mcq-section">
-        <!-- Sample MCQ block -->
-        <div class="mcq-block" data-answer="B">
-          <p>Which planet is known as the Red Planet?</p>
-          <button onclick="checkAnswer(this, 'A')">A. Earth</button>
-          <button onclick="checkAnswer(this, 'B')">B. Mars</button>
-          <button onclick="checkAnswer(this, 'C')">C. Jupiter</button>
-          <button onclick="checkAnswer(this, 'D')">D. Venus</button>
-        </div>
-      </div>
+      <div id="mcqText" class="mcq-section"></div>
     </div>
 
-    <div id="studyPlan" class="fade-in glass-card">
+    <div id="studyPlan" class="section glass-card">
       <h3>📆 Study Plan
         <button class="small-btn" onclick="copyText('studyPlanText')">📋</button>
         <button class="small-btn" onclick="downloadText('studyPlanText', 'study_plan.txt')">⬇️</button>
@@ -67,11 +69,5 @@
   </div>
 
   <script src="script.js"></script>
-  <script>
-    function goToMorphBot() {
-      window.location.href = "chatbot.html";
-    }
-  </script>
-  
 </body>
 </html>
